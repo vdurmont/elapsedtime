@@ -98,12 +98,10 @@ public class ElapsedTime {
     public static String getFromDurationMillis(long durationMillis, Locale locale) {
         Map<TimeDivision, Long> dividedTime = divideTime(durationMillis);
         TimeDivision division = TimeDivision.YEAR;
-        TimeDivision superDivision = null;
         long value = 0;
         while (division != null && value == 0) {
             value = dividedTime.get(division);
             if (value == 0) {
-                superDivision = division;
                 division = division.getSubDivision();
             }
         }
@@ -113,16 +111,18 @@ public class ElapsedTime {
         }
 
         // Check if we crossed the current division threshold
-        if (superDivision != null && value >= division.getThreshold()) {
-            division = superDivision;
+        boolean crossed = false;
+        if (division.getSuperDivision() != null && value >= division.getThreshold()) {
+            division = division.getSuperDivision();
             value = 1;
+            crossed = true;
         }
 
 
         // Check if we crossed a threshold in the subdivision
         // We don't do it if we already increased the division, it can't happen
         TimeDivision subDivision = division.getSubDivision();
-        if (division != superDivision && subDivision != null) {
+        if (!crossed && subDivision != null) {
             long remaining = durationMillis % division.getMillis();
             if (remaining >= subDivision.getThresholdMillis()) {
                 value++;
@@ -130,7 +130,7 @@ public class ElapsedTime {
         }
 
         // If our time division cannot be printed, return the "epsilon" text.
-        if (isBelow(smallestTimeDivision, division)) {
+        if (smallestTimeDivision.getMillis() > division.getMillis()) {
             return locale.getString(StringKey.EPSILON);
         }
 
@@ -139,18 +139,6 @@ public class ElapsedTime {
             return locale.getString(division.getPluralStringKey()).replaceAll("\\{num\\}", String.valueOf(value));
         }
         return locale.getString(division.getSingularStringKey());
-    }
-
-    // TODO move and comment
-    private static boolean isBelow(TimeDivision minimumTimeDivision, TimeDivision division) {
-        TimeDivision current = minimumTimeDivision.getSubDivision();
-        while (current != null) {
-            if (current == division) {
-                return true;
-            }
-            current = current.getSubDivision();
-        }
-        return false;
     }
 
     /**
@@ -190,25 +178,46 @@ public class ElapsedTime {
      * - a threshold that, once reach, will increase the super division amount by 1
      */
     private static enum TimeDivision {
-        MILLIS(1, StringKey.MILLISECOND_AGO, StringKey.MILLISECONDS_AGO, null, 750),
-        SECOND(1000, StringKey.SECOND_AGO, StringKey.SECONDS_AGO, TimeDivision.MILLIS, 45),
-        MINUTE(60 * TimeDivision.SECOND.getMillis(), StringKey.MINUTE_AGO, StringKey.MINUTES_AGO, TimeDivision.SECOND, 45),
-        HOUR(60 * TimeDivision.MINUTE.getMillis(), StringKey.HOUR_AGO, StringKey.HOURS_AGO, TimeDivision.MINUTE, 22),
-        DAY(24 * TimeDivision.HOUR.getMillis(), StringKey.DAY_AGO, StringKey.DAYS_AGO, TimeDivision.HOUR, 26),
-        MONTH(30 * TimeDivision.DAY.getMillis(), StringKey.MONTH_AGO, StringKey.MONTHS_AGO, TimeDivision.DAY, 11), // Duration is an approximation
-        YEAR(12 * TimeDivision.MONTH.getMillis(), StringKey.YEAR_AGO, StringKey.YEARS_AGO, TimeDivision.MONTH, 0); // Duration is an approximation
+        MILLIS(1, StringKey.MILLISECOND_AGO, StringKey.MILLISECONDS_AGO, 750),
+        SECOND(1000, StringKey.SECOND_AGO, StringKey.SECONDS_AGO, 45),
+        MINUTE(60 * TimeDivision.SECOND.getMillis(), StringKey.MINUTE_AGO, StringKey.MINUTES_AGO, 45),
+        HOUR(60 * TimeDivision.MINUTE.getMillis(), StringKey.HOUR_AGO, StringKey.HOURS_AGO, 22),
+        DAY(24 * TimeDivision.HOUR.getMillis(), StringKey.DAY_AGO, StringKey.DAYS_AGO, 26),
+        MONTH(30 * TimeDivision.DAY.getMillis(), StringKey.MONTH_AGO, StringKey.MONTHS_AGO, 11), // Duration is an approximation
+        YEAR(12 * TimeDivision.MONTH.getMillis(), StringKey.YEAR_AGO, StringKey.YEARS_AGO, 0); // Duration is an approximation
+
+        /**
+         *  Workaround to avoid IllegalForwardReferences
+         */
+        static {
+            // Setting the subDivisions
+            SECOND.subDivision = MILLIS;
+            MINUTE.subDivision = SECOND;
+            HOUR.subDivision = MINUTE;
+            DAY.subDivision = HOUR;
+            MONTH.subDivision = DAY;
+            YEAR.subDivision = MONTH;
+
+            // Setting the superDivisions
+            MILLIS.superDivision = SECOND;
+            SECOND.superDivision = MINUTE;
+            MINUTE.superDivision = HOUR;
+            HOUR.superDivision = DAY;
+            DAY.superDivision = MONTH;
+            MONTH.superDivision = YEAR;
+        }
 
         private final long millis;
         private final StringKey singularStringKey;
         private final StringKey pluralStringKey;
-        private final TimeDivision subDivision;
+        private TimeDivision subDivision;
+        private TimeDivision superDivision;
         private final long threshold;
 
-        private TimeDivision(long millis, StringKey singularStringKey, StringKey pluralStringKey, TimeDivision subDivision, long threshold) {
+        private TimeDivision(long millis, StringKey singularStringKey, StringKey pluralStringKey, long threshold) {
             this.millis = millis;
             this.singularStringKey = singularStringKey;
             this.pluralStringKey = pluralStringKey;
-            this.subDivision = subDivision;
             this.threshold = threshold;
         }
 
@@ -226,6 +235,10 @@ public class ElapsedTime {
 
         public TimeDivision getSubDivision() {
             return subDivision;
+        }
+
+        public TimeDivision getSuperDivision() {
+            return superDivision;
         }
 
         public long getThreshold() {
@@ -304,7 +317,7 @@ public class ElapsedTime {
     }
 
     /**
-     * A utility class to create a HashMap of <StringKey, String> with a fluent syntax.
+     * A utility class to create a HashMap<StringKey, String> with a fluent syntax.
      */
     private static class StringsMap extends HashMap<StringKey, String> {
         public static StringsMap newInstance() {
