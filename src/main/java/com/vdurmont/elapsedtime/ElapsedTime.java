@@ -19,7 +19,7 @@ public class ElapsedTime {
     ////////////////
 
     /**
-     * The locale to use if no "method specific" locale is given
+     * The locale to use if no locale is provided when calling the method
      */
     public static Locale defaultLocale = Locale.ENGLISH;
 
