@@ -1,12 +1,9 @@
 package com.vdurmont.elapsedtime;
 
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 /**
  * ElapsedTime is an utility to generate strings that describe an elapsed time.
@@ -17,8 +14,23 @@ import java.util.Properties;
  * - 2 months ago
  */
 public class ElapsedTime {
-    // Init to default config
-    private static Config CONFIG = new Config();
+    ////////////////////////
+    // CONFIG
+    ////////////////
+
+    /**
+     * The locale to use if no "method specific" locale is given
+     */
+    public static Locale defaultLocale = Locale.ENGLISH;
+
+    /**
+     * The smallest time division that can be printed. Everything below will be considered as "moments ago".
+     */
+    public static TimeDivision smallestTimeDivision = TimeDivision.SECOND;
+
+    ////////////////////////
+    // METHODS
+    ////////////////
 
     /**
      * Private constructor. No instance needed.
@@ -26,27 +38,66 @@ public class ElapsedTime {
     private ElapsedTime() {}
 
     /**
+     * Returns the string representing the duration between the provided date and the present instant.
+     *
+     * @param date the date (in the past)
+     *
+     * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the date is in the future
+     */
+    public static String getFromDate(Date date) {
+        Date now = new Date();
+        long durationMillis = now.getTime() - date.getTime();
+        if (durationMillis < 0) {
+            throw new IllegalArgumentException("The provided date cannot be in the future.");
+        }
+        return getFromDurationMillis(durationMillis);
+    }
+
+    /**
      * Returns the string representing the provided duration.
      *
-     * @param durationMillis the duration to represent in milliseconds
+     * @param durationSeconds the duration to represent in seconds
      *
      * @return the string representing the provided duration
      */
-    public static String getFromDuration(long durationMillis) {
-        return getFromDuration(durationMillis, CONFIG);
+    public static String getFromDurationSeconds(long durationSeconds) {
+        return getFromDurationMillis(durationSeconds * 1000);
+    }
+
+    /**
+     * Returns the string representing the provided duration.
+     *
+     * @param durationSeconds the duration to represent in seconds
+     *
+     * @return the string representing the provided duration
+     */
+    public static String getFromDurationSeconds(long durationSeconds, Locale locale) {
+        return getFromDurationMillis(durationSeconds * 1000, locale);
     }
 
     /**
      * Returns the string representing the provided duration.
      *
      * @param durationMillis the duration to represent in milliseconds
-     * @param config         the config to use when generating the elapsed time
      *
      * @return the string representing the provided duration
      */
-    public static String getFromDuration(long durationMillis, Config config) {
-        Map<TimeDivision, Long> dividedTime = divideTime(config, durationMillis);
-        TimeDivision division = config.getMaximumTimeDivision();
+    public static String getFromDurationMillis(long durationMillis) {
+        return getFromDurationMillis(durationMillis, defaultLocale);
+    }
+
+    /**
+     * Returns the string representing the provided duration.
+     *
+     * @param durationMillis the duration to represent in milliseconds
+     * @param locale         the locale to use for this string
+     *
+     * @return the string representing the provided duration
+     */
+    public static String getFromDurationMillis(long durationMillis, Locale locale) {
+        Map<TimeDivision, Long> dividedTime = divideTime(durationMillis);
+        TimeDivision division = TimeDivision.YEAR;
         TimeDivision superDivision = null;
         long value = 0;
         while (division != null && value == 0) {
@@ -78,14 +129,19 @@ public class ElapsedTime {
             }
         }
 
-        if (isBelow(config.getMinimumTimeDivision(), division)) {
-            return formatString(config, "epsilon", null);
+        // If our time division cannot be printed, return the "epsilon" text.
+        if (isBelow(smallestTimeDivision, division)) {
+            return locale.getString(StringKey.EPSILON);
         }
 
-        String key = value > 1 ? division.getMultipleStringKey() : division.getSingleStringKey();
-        return formatString(config, key, value);
+        // Else return the singular or plural text
+        if (value > 1) {
+            return locale.getString(division.getPluralStringKey()).replaceAll("\\{num\\}", String.valueOf(value));
+        }
+        return locale.getString(division.getSingularStringKey());
     }
 
+    // TODO move and comment
     private static boolean isBelow(TimeDivision minimumTimeDivision, TimeDivision division) {
         TimeDivision current = minimumTimeDivision.getSubDivision();
         while (current != null) {
@@ -97,8 +153,19 @@ public class ElapsedTime {
         return false;
     }
 
-    private static Map<TimeDivision, Long> divideTime(Config config, long duration) {
-        TimeDivision division = config.getMaximumTimeDivision();
+    /**
+     * Creates a hashmap with the amount of each division that can be fit into the duration.
+     * We start at the biggest division and everytime a division can fit, we decrease the remaining duration.
+     *
+     * Example:
+     * - 275723300 millis can fit: 3 days + 4 hours + 35 minutes + 23 seconds + 300 millis
+     *
+     * @param duration the duration to divide
+     *
+     * @return the amount for each {@link TimeDivision}
+     */
+    private static Map<TimeDivision, Long> divideTime(long duration) {
+        TimeDivision division = TimeDivision.YEAR;
         Map<TimeDivision, Long> results = new HashMap<TimeDivision, Long>();
 
         while (division != null) {
@@ -110,86 +177,37 @@ public class ElapsedTime {
         return results;
     }
 
-    private static String formatString(Config config, String key, Long value) {
-        if (value == null) {
-            return config.getString(key);
-        }
-        return config.getString(key).replaceAll("\\{num\\}", value.toString());
-    }
-
     ////////////////////////
-    // CONFIG
+    // TIME DIVISIONS
     ////////////////
 
-    public static class Config {
-        private String locale;
-        private TimeDivision minDivision;
-        private TimeDivision maxDivision;
-        private Map<String, Properties> texts;
+    /**
+     * Represents the different time divisions supported by this library.
+     * Also provides useful information such as:
+     * - the duration of this division in millis,
+     * - the string keys for plural and singular forms
+     * - the subdivision
+     * - a threshold that, once reach, will increase the super division amount by 1
+     */
+    private static enum TimeDivision {
+        MILLIS(1, StringKey.MILLISECOND_AGO, StringKey.MILLISECONDS_AGO, null, 750),
+        SECOND(1000, StringKey.SECOND_AGO, StringKey.SECONDS_AGO, TimeDivision.MILLIS, 45),
+        MINUTE(60 * TimeDivision.SECOND.getMillis(), StringKey.MINUTE_AGO, StringKey.MINUTES_AGO, TimeDivision.SECOND, 45),
+        HOUR(60 * TimeDivision.MINUTE.getMillis(), StringKey.HOUR_AGO, StringKey.HOURS_AGO, TimeDivision.MINUTE, 22),
+        DAY(24 * TimeDivision.HOUR.getMillis(), StringKey.DAY_AGO, StringKey.DAYS_AGO, TimeDivision.HOUR, 26),
+        MONTH(30 * TimeDivision.DAY.getMillis(), StringKey.MONTH_AGO, StringKey.MONTHS_AGO, TimeDivision.DAY, 11), // Duration is an approximation
+        YEAR(12 * TimeDivision.MONTH.getMillis(), StringKey.YEAR_AGO, StringKey.YEARS_AGO, TimeDivision.MONTH, 0); // Duration is an approximation
 
-        public Config() {
-            // Init the default values
-            this.locale = "en";
-            this.minDivision = TimeDivision.SECOND;
-            this.maxDivision = TimeDivision.YEAR;
-
-            this.texts = new HashMap<String, Properties>();
-            this.loadStrings();
-        }
-
-        private void loadStrings() {
-            File[] files = getStringsFiles();
-            for (File file : files) {
-                this.loadFile(file);
-            }
-        }
-
-        private static File[] getStringsFiles() {
-            String stringsDirectory = "src/main/resources/strings/";
-            return new File(stringsDirectory).listFiles();
-        }
-
-        private void loadFile(File file) {
-            try {
-                Properties props = new Properties();
-                props.load(new FileInputStream(file));
-                this.texts.put(file.getName().replace(".properties", ""), props);
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to load strings file " + file.getAbsolutePath());
-            }
-        }
-
-        public TimeDivision getMinimumTimeDivision() {
-            return minDivision;
-        }
-
-        public TimeDivision getMaximumTimeDivision() {
-            return maxDivision;
-        }
-
-        public String getString(String key) {
-            return this.texts.get(this.locale).getProperty(key);
-        }
-    }
-
-    public static enum TimeDivision {
-        MILLIS(1, "millisecond", null, 750),
-        SECOND(1000, "second", TimeDivision.MILLIS, 45),
-        MINUTE(60 * TimeDivision.SECOND.getMillis(), "minute", TimeDivision.SECOND, 45),
-        HOUR(60 * TimeDivision.MINUTE.getMillis(), "hour", TimeDivision.MINUTE, 22),
-        DAY(24 * TimeDivision.HOUR.getMillis(), "day", TimeDivision.HOUR, 26),
-        MONTH(30 * TimeDivision.DAY.getMillis(), "month", TimeDivision.DAY, 11), // Duration is an approximation
-        YEAR(12 * TimeDivision.MONTH.getMillis(), "year", TimeDivision.MONTH, 0); // Duration is an approximation
-
-        private static final String SUFFIX = "_ago";
         private final long millis;
-        private final String stringKey;
+        private final StringKey singularStringKey;
+        private final StringKey pluralStringKey;
         private final TimeDivision subDivision;
         private final long threshold;
 
-        private TimeDivision(long millis, String stringKey, TimeDivision subDivision, long threshold) {
+        private TimeDivision(long millis, StringKey singularStringKey, StringKey pluralStringKey, TimeDivision subDivision, long threshold) {
             this.millis = millis;
-            this.stringKey = stringKey;
+            this.singularStringKey = singularStringKey;
+            this.pluralStringKey = pluralStringKey;
             this.subDivision = subDivision;
             this.threshold = threshold;
         }
@@ -198,12 +216,12 @@ public class ElapsedTime {
             return millis;
         }
 
-        public String getSingleStringKey() {
-            return stringKey + SUFFIX;
+        public StringKey getSingularStringKey() {
+            return singularStringKey;
         }
 
-        public String getMultipleStringKey() {
-            return stringKey + "s" + SUFFIX;
+        public StringKey getPluralStringKey() {
+            return pluralStringKey;
         }
 
         public TimeDivision getSubDivision() {
@@ -211,11 +229,91 @@ public class ElapsedTime {
         }
 
         public long getThreshold() {
-            return this.threshold;
+            return threshold;
         }
 
         public long getThresholdMillis() {
-            return this.threshold * this.millis;
+            return threshold * millis;
+        }
+    }
+
+    ////////////////////////
+    // STRINGS
+    ////////////////
+
+    /**
+     * The supported languages and their associated strings.
+     */
+    public static enum Locale {
+        ENGLISH(StringsMap.newInstance()
+                .with(StringKey.EPSILON, "Moments ago")
+                .with(StringKey.MILLISECOND_AGO, "1 millisecond ago")
+                .with(StringKey.MILLISECONDS_AGO, "{num} milliseconds ago")
+                .with(StringKey.SECOND_AGO, "1 second ago")
+                .with(StringKey.SECONDS_AGO, "{num} seconds ago")
+                .with(StringKey.MINUTE_AGO, "1 minute ago")
+                .with(StringKey.MINUTES_AGO, "{num} minutes ago")
+                .with(StringKey.HOUR_AGO, "1 hour ago")
+                .with(StringKey.HOURS_AGO, "{num} hours ago")
+                .with(StringKey.DAY_AGO, "1 day ago")
+                .with(StringKey.DAYS_AGO, "{num} days ago")
+                .with(StringKey.MONTH_AGO, "1 month ago")
+                .with(StringKey.MONTHS_AGO, "{num} months ago")
+                .with(StringKey.YEAR_AGO, "1 year ago")
+                .with(StringKey.YEARS_AGO, "{num} years ago")),
+        FRENCH(StringsMap.newInstance()
+                .with(StringKey.EPSILON, "Il y a quelques instants")
+                .with(StringKey.MILLISECOND_AGO, "Il y a 1 milliseconde")
+                .with(StringKey.MILLISECONDS_AGO, "Il y a {num} millisecondes")
+                .with(StringKey.SECOND_AGO, "Il y a 1 seconde")
+                .with(StringKey.SECONDS_AGO, "Il y a {num} secondes")
+                .with(StringKey.MINUTE_AGO, "Il y a 1 minute")
+                .with(StringKey.MINUTES_AGO, "Il y a {num} minutes")
+                .with(StringKey.HOUR_AGO, "Il y a 1 heure")
+                .with(StringKey.HOURS_AGO, "Il y a {num} heures")
+                .with(StringKey.DAY_AGO, "Il y a 1 jour")
+                .with(StringKey.DAYS_AGO, "Il y a {num} jours")
+                .with(StringKey.MONTH_AGO, "Il y a 1 mois")
+                .with(StringKey.MONTHS_AGO, "Il y a {num} mois")
+                .with(StringKey.YEAR_AGO, "Il y a 1 an")
+                .with(StringKey.YEARS_AGO, "Il y a {num} ans"));
+
+        private Map<StringKey, String> strings;
+
+        private Locale(Map<StringKey, String> strings) {
+            this.strings = strings;
+        }
+
+        public String getString(StringKey key) {
+            return this.strings.get(key);
+        }
+    }
+
+    /**
+     * The keys for the strings used in the generation
+     */
+    protected static enum StringKey {
+        EPSILON,
+        MILLISECOND_AGO, MILLISECONDS_AGO,
+        SECOND_AGO, SECONDS_AGO,
+        MINUTE_AGO, MINUTES_AGO,
+        HOUR_AGO, HOURS_AGO,
+        DAY_AGO, DAYS_AGO,
+        MONTH_AGO, MONTHS_AGO,
+        YEAR_AGO, YEARS_AGO
+    }
+
+    /**
+     * A utility class to create a HashMap of <StringKey, String> with a fluent syntax.
+     */
+    private static class StringsMap extends HashMap<StringKey, String> {
+        public static StringsMap newInstance() {
+            return new StringsMap();
+        }
+
+        public StringsMap with(StringKey key, String value) {
+            this.put(key, value);
+            return this;
         }
     }
 }
