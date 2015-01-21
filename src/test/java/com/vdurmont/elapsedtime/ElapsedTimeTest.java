@@ -7,6 +7,9 @@ import org.junit.runners.JUnit4;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+/**
+ * @author Vincent DURMONT [vdurmont@gmail.com]
+ */
 @RunWith(JUnit4.class)
 public class ElapsedTimeTest {
     private static final long SECOND = 1000;

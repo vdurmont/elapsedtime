@@ -12,6 +12,8 @@ import java.util.Map;
  * - 2 days ago
  * - 3 hours, 32 minutes and 8 seconds ago
  * - 2 months ago
+ *
+ * @author Vincent DURMONT [vdurmont@gmail.com]
  */
 public class ElapsedTime {
     ////////////////////////
@@ -46,12 +48,22 @@ public class ElapsedTime {
      * @throws java.lang.IllegalArgumentException if the date is in the future
      */
     public static String getFromDate(Date date) {
+        return getFromDate(date, defaultLocale);
+    }
+
+    /**
+     * Returns the string representing the duration between the provided date and the present instant.
+     *
+     * @param date   the date (in the past)
+     * @param locale the locale to use for this string
+     *
+     * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the date is in the future
+     */
+    public static String getFromDate(Date date, Locale locale) {
         Date now = new Date();
         long durationMillis = now.getTime() - date.getTime();
-        if (durationMillis < 0) {
-            throw new IllegalArgumentException("The provided date cannot be in the future.");
-        }
-        return getFromDurationMillis(durationMillis);
+        return getFromDurationMillis(durationMillis, locale);
     }
 
     /**
@@ -60,6 +72,7 @@ public class ElapsedTime {
      * @param durationSeconds the duration to represent in seconds
      *
      * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the duration is < 0
      */
     public static String getFromDurationSeconds(long durationSeconds) {
         return getFromDurationMillis(durationSeconds * 1000);
@@ -69,8 +82,11 @@ public class ElapsedTime {
      * Returns the string representing the provided duration.
      *
      * @param durationSeconds the duration to represent in seconds
+     * @param locale          the locale to use for this string
      *
      * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the locale is null
      */
     public static String getFromDurationSeconds(long durationSeconds, Locale locale) {
         return getFromDurationMillis(durationSeconds * 1000, locale);
@@ -82,6 +98,7 @@ public class ElapsedTime {
      * @param durationMillis the duration to represent in milliseconds
      *
      * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the duration is < 0
      */
     public static String getFromDurationMillis(long durationMillis) {
         return getFromDurationMillis(durationMillis, defaultLocale);
@@ -94,8 +111,16 @@ public class ElapsedTime {
      * @param locale         the locale to use for this string
      *
      * @return the string representing the provided duration
+     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the locale is null
      */
     public static String getFromDurationMillis(long durationMillis, Locale locale) {
+        if (durationMillis < 0) {
+            throw new IllegalArgumentException("The provided duration is < 0.");
+        }
+        if (locale == null) {
+            throw new IllegalArgumentException("The provided locale is null.");
+        }
         Map<TimeDivision, Long> dividedTime = divideTime(durationMillis);
         TimeDivision division = TimeDivision.YEAR;
         long value = 0;
@@ -131,7 +156,7 @@ public class ElapsedTime {
 
         // If our time division cannot be printed, return the "epsilon" text.
         if (smallestTimeDivision.getMillis() > division.getMillis()) {
-            return locale.getString(StringKey.EPSILON);
+            return locale.getString(StringKey.MOMENTS_AGO);
         }
 
         // Else return the singular or plural text
@@ -259,7 +284,7 @@ public class ElapsedTime {
      */
     public static enum Locale {
         ENGLISH(StringsMap.newInstance()
-                .with(StringKey.EPSILON, "Moments ago")
+                .with(StringKey.MOMENTS_AGO, "Moments ago")
                 .with(StringKey.MILLISECOND_AGO, "1 millisecond ago")
                 .with(StringKey.MILLISECONDS_AGO, "{num} milliseconds ago")
                 .with(StringKey.SECOND_AGO, "1 second ago")
@@ -275,7 +300,7 @@ public class ElapsedTime {
                 .with(StringKey.YEAR_AGO, "1 year ago")
                 .with(StringKey.YEARS_AGO, "{num} years ago")),
         FRENCH(StringsMap.newInstance()
-                .with(StringKey.EPSILON, "Il y a quelques instants")
+                .with(StringKey.MOMENTS_AGO, "Il y a quelques instants")
                 .with(StringKey.MILLISECOND_AGO, "Il y a 1 milliseconde")
                 .with(StringKey.MILLISECONDS_AGO, "Il y a {num} millisecondes")
                 .with(StringKey.SECOND_AGO, "Il y a 1 seconde")
@@ -306,7 +331,7 @@ public class ElapsedTime {
      * The keys for the strings used in the generation
      */
     protected static enum StringKey {
-        EPSILON,
+        MOMENTS_AGO,
         MILLISECOND_AGO, MILLISECONDS_AGO,
         SECOND_AGO, SECONDS_AGO,
         MINUTE_AGO, MINUTES_AGO,
