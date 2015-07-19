@@ -72,7 +72,7 @@ public class ElapsedTime {
      * @param durationSeconds the duration to represent in seconds
      *
      * @return the string representing the provided duration
-     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the duration is lower than 0
      */
     public static String getFromDurationSeconds(long durationSeconds) {
         return getFromDurationMillis(durationSeconds * 1000);
@@ -85,7 +85,7 @@ public class ElapsedTime {
      * @param locale          the locale to use for this string
      *
      * @return the string representing the provided duration
-     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the duration is lower than 0
      * @throws java.lang.IllegalArgumentException if the locale is null
      */
     public static String getFromDurationSeconds(long durationSeconds, Locale locale) {
@@ -98,7 +98,7 @@ public class ElapsedTime {
      * @param durationMillis the duration to represent in milliseconds
      *
      * @return the string representing the provided duration
-     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the duration is lower than 0
      */
     public static String getFromDurationMillis(long durationMillis) {
         return getFromDurationMillis(durationMillis, defaultLocale);
@@ -111,7 +111,7 @@ public class ElapsedTime {
      * @param locale         the locale to use for this string
      *
      * @return the string representing the provided duration
-     * @throws java.lang.IllegalArgumentException if the duration is < 0
+     * @throws java.lang.IllegalArgumentException if the duration is lower than 0
      * @throws java.lang.IllegalArgumentException if the locale is null
      */
     public static String getFromDurationMillis(long durationMillis, Locale locale) {
@@ -282,7 +282,7 @@ public class ElapsedTime {
     /**
      * The supported languages and their associated strings.
      */
-    public static enum Locale {
+    public enum Locale {
         ENGLISH(StringsMap.newInstance()
                 .with(StringKey.MOMENTS_AGO, "Moments ago")
                 .with(StringKey.MILLISECOND_AGO, "1 millisecond ago")
@@ -330,7 +330,7 @@ public class ElapsedTime {
     /**
      * The keys for the strings used in the generation
      */
-    protected static enum StringKey {
+    protected enum StringKey {
         MOMENTS_AGO,
         MILLISECOND_AGO, MILLISECONDS_AGO,
         SECOND_AGO, SECONDS_AGO,
