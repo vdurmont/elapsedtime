@@ -1,4 +1,7 @@
 # ElapsedTime
+[![Build Status](https://travis-ci.org/vdurmont/elapsedtime.svg?branch=master)](https://travis-ci.org/vdurmont/elapsedtime)
+[![Coverage Status](https://img.shields.io/coveralls/vdurmont/elapsedtime.svg)](https://coveralls.io/r/vdurmont/elapsedtime?branch=master)
+[![License Info](http://img.shields.io/badge/license-The%20MIT%20License-brightgreen.svg)](https://github.com/vdurmont/elapsedtime/blob/master/LICENSE.md)
 
 **ElapsedTime** is a lightweight Java library which generates a string representation of an elapsed time. (e.g.: "2 hours ago").
 
