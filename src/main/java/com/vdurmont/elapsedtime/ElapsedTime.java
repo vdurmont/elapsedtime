@@ -324,7 +324,7 @@ public class ElapsedTime {
                 .with(StringKey.MINUTE_AGO, "Hace 1 minuto")
                 .with(StringKey.MINUTES_AGO, "Hace {num} minutos")
                 .with(StringKey.HOUR_AGO, "Hace 1 hora")
-                .with(StringKey.HOURS_AGO, "Hace {num} hora")
+                .with(StringKey.HOURS_AGO, "Hace {num} horas")
                 .with(StringKey.DAY_AGO, "Hace 1 día")
                 .with(StringKey.DAYS_AGO, "Hace {num} días")
                 .with(StringKey.MONTH_AGO, "Hace 1 mes")
