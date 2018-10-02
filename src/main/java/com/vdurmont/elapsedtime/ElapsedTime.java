@@ -314,7 +314,23 @@ public class ElapsedTime {
                 .with(StringKey.MONTH_AGO, "Il y a 1 mois")
                 .with(StringKey.MONTHS_AGO, "Il y a {num} mois")
                 .with(StringKey.YEAR_AGO, "Il y a 1 an")
-                .with(StringKey.YEARS_AGO, "Il y a {num} ans"));
+                .with(StringKey.YEARS_AGO, "Il y a {num} ans")),
+        SPANISH(StringsMap.newInstance()
+                .with(StringKey.MOMENTS_AGO, "Hace un momento")
+                .with(StringKey.MILLISECOND_AGO, "Hace un milisegundo")
+                .with(StringKey.MILLISECONDS_AGO, "Hace {num} milisegundos")
+                .with(StringKey.SECOND_AGO, "Hace 1 segundo")
+                .with(StringKey.SECONDS_AGO, "Hace {num} segundos")
+                .with(StringKey.MINUTE_AGO, "Hace 1 minuto")
+                .with(StringKey.MINUTES_AGO, "Hace {num} minutos")
+                .with(StringKey.HOUR_AGO, "Hace 1 hora")
+                .with(StringKey.HOURS_AGO, "Hace {num} hora")
+                .with(StringKey.DAY_AGO, "Hace 1 día")
+                .with(StringKey.DAYS_AGO, "Hace {num} días")
+                .with(StringKey.MONTH_AGO, "Hace 1 mes")
+                .with(StringKey.MONTHS_AGO, "Hace {num} meses")
+                .with(StringKey.YEAR_AGO, "Hace 1 año")
+                .with(StringKey.YEARS_AGO, "Hace {num} años"));
 
         private Map<StringKey, String> strings;
 
