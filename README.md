@@ -13,7 +13,7 @@ Add the maven dependency to your project or download the library and compile it 
 <dependency>
   <groupId>com.vdurmont</groupId>
   <artificatId>elapsedtime</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
