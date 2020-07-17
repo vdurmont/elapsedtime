@@ -16,6 +16,7 @@ public class ElapsedTimeTest {
     private static final long MINUTE = SECOND * 60;
     private static final long HOUR = MINUTE * 60;
     private static final long DAY = HOUR * 24;
+    private static final long WEEK = DAY * 7;
     private static final long MONTH = DAY * 30;
     private static final long YEAR = MONTH * 12;
 
@@ -101,6 +102,25 @@ public class ElapsedTimeTest {
         String result = ElapsedTime.getFromDurationMillis(duration);
         assertEquals("1 day ago", result);
     }
+
+    @Test public void get_with_a_duration_equal_to_1_week_ago(){
+        long duration = WEEK;
+        String result = ElapsedTime.getFromDurationMillis(duration);
+        assertEquals("1 week ago", result);
+    }
+
+    @Test public void get_with_a_duration_equal_to_2_week_ago(){
+        long duration = WEEK * 2;
+        String result = ElapsedTime.getFromDurationMillis(duration);
+        assertEquals("2 weeks ago", result);
+    }
+
+    @Test public void get_with_a_duration_equal_to_1_month_when_weeks_are_5(){
+        long duration = WEEK * 5;
+        String result = ElapsedTime.getFromDurationMillis(duration);
+        assertEquals("1 month ago", result);
+    }
+
 
     @Test public void get_with_a_duration_equal_to_1_month() {
         long duration = MONTH;

@@ -208,6 +208,7 @@ public class ElapsedTime {
         MINUTE(60 * TimeDivision.SECOND.getMillis(), StringKey.MINUTE_AGO, StringKey.MINUTES_AGO, 45),
         HOUR(60 * TimeDivision.MINUTE.getMillis(), StringKey.HOUR_AGO, StringKey.HOURS_AGO, 22),
         DAY(24 * TimeDivision.HOUR.getMillis(), StringKey.DAY_AGO, StringKey.DAYS_AGO, 26),
+        WEEK(7 * TimeDivision.DAY.getMillis(), StringKey.WEEK_AGO, StringKey.WEEKS_AGO, 3),
         MONTH(30 * TimeDivision.DAY.getMillis(), StringKey.MONTH_AGO, StringKey.MONTHS_AGO, 11), // Duration is an approximation
         YEAR(12 * TimeDivision.MONTH.getMillis(), StringKey.YEAR_AGO, StringKey.YEARS_AGO, 0); // Duration is an approximation
 
@@ -220,7 +221,8 @@ public class ElapsedTime {
             MINUTE.subDivision = SECOND;
             HOUR.subDivision = MINUTE;
             DAY.subDivision = HOUR;
-            MONTH.subDivision = DAY;
+            WEEK.subDivision = DAY;
+            MONTH.subDivision = WEEK;
             YEAR.subDivision = MONTH;
 
             // Setting the superDivisions
@@ -228,7 +230,8 @@ public class ElapsedTime {
             SECOND.superDivision = MINUTE;
             MINUTE.superDivision = HOUR;
             HOUR.superDivision = DAY;
-            DAY.superDivision = MONTH;
+            DAY.superDivision = WEEK;
+            WEEK.superDivision = MONTH;
             MONTH.superDivision = YEAR;
         }
 
@@ -295,6 +298,8 @@ public class ElapsedTime {
                 .with(StringKey.HOURS_AGO, "{num} hours ago")
                 .with(StringKey.DAY_AGO, "1 day ago")
                 .with(StringKey.DAYS_AGO, "{num} days ago")
+                .with(StringKey.WEEK_AGO, "1 week ago")
+                .with(StringKey.WEEKS_AGO, "{num} weeks ago")
                 .with(StringKey.MONTH_AGO, "1 month ago")
                 .with(StringKey.MONTHS_AGO, "{num} months ago")
                 .with(StringKey.YEAR_AGO, "1 year ago")
@@ -311,6 +316,8 @@ public class ElapsedTime {
                 .with(StringKey.HOURS_AGO, "Il y a {num} heures")
                 .with(StringKey.DAY_AGO, "Il y a 1 jour")
                 .with(StringKey.DAYS_AGO, "Il y a {num} jours")
+                .with(StringKey.WEEK_AGO, "Il y a 1 semanie")
+                .with(StringKey.WEEKS_AGO, "Il y a {num} semaines")
                 .with(StringKey.MONTH_AGO, "Il y a 1 mois")
                 .with(StringKey.MONTHS_AGO, "Il y a {num} mois")
                 .with(StringKey.YEAR_AGO, "Il y a 1 an")
@@ -327,6 +334,8 @@ public class ElapsedTime {
                 .with(StringKey.HOURS_AGO, "Hace {num} horas")
                 .with(StringKey.DAY_AGO, "Hace 1 día")
                 .with(StringKey.DAYS_AGO, "Hace {num} días")
+                .with(StringKey.WEEK_AGO, "Hace una semana")
+                .with(StringKey.WEEKS_AGO, "Hace {num} semanas")
                 .with(StringKey.MONTH_AGO, "Hace 1 mes")
                 .with(StringKey.MONTHS_AGO, "Hace {num} meses")
                 .with(StringKey.YEAR_AGO, "Hace 1 año")
@@ -353,6 +362,7 @@ public class ElapsedTime {
         MINUTE_AGO, MINUTES_AGO,
         HOUR_AGO, HOURS_AGO,
         DAY_AGO, DAYS_AGO,
+        WEEK_AGO, WEEKS_AGO,
         MONTH_AGO, MONTHS_AGO,
         YEAR_AGO, YEARS_AGO
     }
